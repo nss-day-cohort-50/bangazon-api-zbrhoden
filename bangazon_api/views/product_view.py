@@ -12,6 +12,7 @@ from bangazon_api.models import Product, Store, Category, Order, Rating, Recomme
 from bangazon_api.serializers import (
     ProductSerializer, CreateProductSerializer, MessageSerializer,
     AddProductRatingSerializer, AddRemoveRecommendationSerializer)
+from django.db.models.aggregates import Min
 
 
 class ProductView(ViewSet):
@@ -161,6 +162,7 @@ class ProductView(ViewSet):
         """Get a list of all products"""
         products = Product.objects.all()
 
+        price = request.query_params.get('min_price', None)
         number_sold = request.query_params.get('number_sold', None)
         category = request.query_params.get('category', None)
         order = request.query_params.get('order_by', None)
@@ -170,6 +172,10 @@ class ProductView(ViewSet):
             products = products.annotate(
                 order_count=Count('orders')
             ).filter(order_count__gt=number_sold)
+        if price:
+            products = products.annotate(
+                min_price=Min('price')
+            ).filter(min_price__gt=price)
 
         if order is not None:
             order_filter = f'-{order}' if direction == 'desc' else order
